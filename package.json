@@ -26,6 +26,7 @@
   "license": "MIT",
   "devDependencies": {
     "@tsconfig/node12": "^1.0.7",
+    "@types/fuzzyset.js": "^0.0.2",
     "@types/lodash": "^4.14.167",
     "@types/node": "^14.14.21",
     "@typescript-eslint/eslint-plugin": "^4.13.0",
@@ -43,7 +44,7 @@
     "@discordjs/opus": "^0.3.3",
     "discord.js": "^12.5.1",
     "ffmpeg-static": "^4.2.7",
-    "fuzzysearch": "^1.0.3",
+    "fuzzyset.js": "^1.0.6",
     "lodash": "^4.17.20",
     "ym-api": "^1.0.0"
   }

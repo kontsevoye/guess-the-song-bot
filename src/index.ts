@@ -1,7 +1,7 @@
-import Discord, { VoiceConnection } from "discord.js";
+import Discord from "discord.js";
 import { WrappedYMApi } from "ym-api";
 import shuffle from "lodash/shuffle";
-import fuzzysearch from "fuzzysearch";
+import FuzzySet from "fuzzyset.js";
 import AppState from "./state/in-memory/AppState";
 
 const ymApi = new WrappedYMApi();
@@ -44,10 +44,9 @@ const state = new AppState();
           msg.reply("chto za chepuxa");
           return;
         }
-        let connection: VoiceConnection;
         if (msg.member?.voice.channel) {
-          connection = await msg.member?.voice.channel.join();
-          console.log({ connection });
+          const connection = await msg.member?.voice.channel.join();
+          state.getChannelState(msg.channel.id).setVoiceConnection(connection);
         } else {
           msg.reply("You need to join a voice channel first!");
           return;
@@ -67,11 +66,7 @@ const state = new AppState();
         console.log(track, downloadUrl);
         state.getChannelState(msg.channel.id).setPlaying(true);
         msg.reply("some background magic done, go play");
-        const dispatcher = connection.play(downloadUrl);
-        dispatcher.on("finish", () => {
-          msg.channel.send("Wanna play again? Type `!gtsreplay`");
-          console.log("Finished playing!");
-        });
+        state.getChannelState(msg.channel.id).getVoiceConnection().play(downloadUrl);
       } else if (msg.content.startsWith("!gtsguess")) {
         const input = msg.content.split(" ");
         if (input.length < 2) {
@@ -80,23 +75,19 @@ const state = new AppState();
         }
         const guess = input.slice(1).join(" ");
         const track = state.getChannelState(msg.channel.id).getCurrentTrack();
+        const fset = FuzzySet([track.title]);
+        const match = fset.get(guess, [], 0.8);
         console.log(
           `comparing ${guess} and ${track.title}`,
-          fuzzysearch(guess, track.title)
+          match,
+          match?.length,
         );
-        if (fuzzysearch(guess.toLowerCase(), track.title.toLowerCase())) {
+        if (match?.length && match.length >= 1) {
           msg.reply(
             `You goddamn right, it is \`${track.artists
               .map((a) => a.name)
-              .join(" ")} - ${track.title}\``
+              .join(", ")} - ${track.title}\``
           );
-          if (msg.member?.voice.channel) {
-            const connection = await msg.member?.voice.channel.join();
-            connection.disconnect();
-          } else {
-            msg.reply("You need to join a voice channel first!");
-            return;
-          }
           const newTrack = state
             .getChannelState(msg.channel.id)
             .switchCurrentTrack();
@@ -109,19 +100,7 @@ const state = new AppState();
           console.log(newTrack, downloadUrl);
           state.getChannelState(msg.channel.id).setPlaying(true);
           msg.reply("some background magic done, go play");
-          let connection;
-          if (msg.member?.voice.channel) {
-            connection = await msg.member?.voice.channel.join();
-            connection.disconnect();
-          } else {
-            msg.reply("You need to join a voice channel first!");
-            return;
-          }
-          const dispatcher = connection.play(downloadUrl);
-          dispatcher.on("finish", () => {
-            msg.channel.send("Wanna play again? Type `!gtsreplay`");
-            console.log("Finished playing!");
-          });
+          state.getChannelState(msg.channel.id).getVoiceConnection().play(downloadUrl);
         } else {
           msg.reply("sosatb");
         }
@@ -132,21 +111,8 @@ const state = new AppState();
         }
         state.eraseChannelState(msg.channel.id);
         msg.reply("go stop");
-        if (msg.member?.voice.channel) {
-          const connection = await msg.member?.voice.channel.join();
-          connection.disconnect();
-        } else {
-          msg.reply("You need to join a voice channel first!");
-          return;
-        }
+        state.getChannelState(msg.channel.id).getVoiceConnection().disconnect();
       } else if (msg.content.startsWith("!gtsskip")) {
-        if (msg.member?.voice.channel) {
-          const connection = await msg.member?.voice.channel.join();
-          connection.disconnect();
-        } else {
-          msg.reply("You need to join a voice channel first!");
-          return;
-        }
         const newTrack = state
           .getChannelState(msg.channel.id)
           .switchCurrentTrack();
@@ -157,19 +123,7 @@ const state = new AppState();
         console.log(newTrack, downloadUrl);
         state.getChannelState(msg.channel.id).setPlaying(true);
         msg.reply("some background magic done, go play");
-        let connection;
-        if (msg.member?.voice.channel) {
-          connection = await msg.member?.voice.channel.join();
-          connection.disconnect();
-        } else {
-          msg.reply("You need to join a voice channel first!");
-          return;
-        }
-        const dispatcher = connection.play(downloadUrl);
-        dispatcher.on("finish", () => {
-          msg.channel.send("Wanna play again? Type `!gtsreplay`");
-          console.log("Finished playing!");
-        });
+        state.getChannelState(msg.channel.id).getVoiceConnection().play(downloadUrl);
       }
     } catch (e) {
       console.error(`some error occured: ${e.message}`, e);
