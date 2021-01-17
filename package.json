@@ -1,0 +1,43 @@
+{
+  "name": "guess-the-song-bot",
+  "version": "1.0.0",
+  "homepage": "https://github.com/kontsevoye/guess-the-song-bot",
+  "description": "Guess the song bot for discord",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kontsevoye/guess-the-song-bot.git"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "guess",
+    "song"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublish": "npm run build",
+    "format": "npx prettier --write .",
+    "lint": "npx eslint src/**"
+  },
+  "author": "Evgeny Kontsevoy",
+  "license": "MIT",
+  "devDependencies": {
+    "@tsconfig/node12": "^1.0.7",
+    "@types/node": "^14.14.21",
+    "@typescript-eslint/eslint-plugin": "^4.13.0",
+    "@typescript-eslint/parser": "^4.13.0",
+    "eslint": "^7.18.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^7.1.0",
+    "eslint-plugin-import": "^2.22.1",
+    "prettier": "^2.2.1",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
+  },
+  "dependencies": {
+    "discord.js": "^12.5.1",
+    "ym-api": "^1.0.0"
+  }
+}
