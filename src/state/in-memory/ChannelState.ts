@@ -77,4 +77,8 @@ export default class ChannelState implements ChannelStateInterface {
   setVoiceConnection(voiceConnection: VoiceConnection): void {
     this.voiceConnection = voiceConnection;
   }
+
+  isNextTrackAvailable(): boolean {
+    return this.playlist.tracks.length > 0;
+  }
 }
