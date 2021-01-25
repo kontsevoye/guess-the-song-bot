@@ -1,8 +1,11 @@
 import { Message } from "discord.js";
-import FuzzySet from "fuzzyset.js";
-import createTrackTitle from "../helper/createTrackTitle";
 import { Any, StartsWith } from "../matcher";
-import { AppContext, CommandInterface, MatcherInterface } from "../types";
+import {
+  AppContext,
+  CommandInterface,
+  MatchEnum,
+  MatcherInterface,
+} from "../types";
 
 export default class GuessCommand implements CommandInterface {
   getName = (): string => "guess";
@@ -14,6 +17,9 @@ export default class GuessCommand implements CommandInterface {
   ];
 
   async handle(msg: Message, ctx: AppContext): Promise<void> {
+    if (!ctx.state.getChannelState(msg.channel.id).isPlaying()) {
+      return;
+    }
     try {
       ctx.state.getChannelState(msg.channel.id).getCurrentTrack();
     } catch (e) {
@@ -30,29 +36,52 @@ export default class GuessCommand implements CommandInterface {
       );
       return;
     }
+    const vc = ctx.state.getChannelState(msg.channel.id).getVoiceConnection();
+    if (!vc) {
+      throw new Error("can't guess track without voice connection");
+    }
     const track = ctx.state.getChannelState(msg.channel.id).getCurrentTrack();
-    const fset = FuzzySet([track.title]);
-    const match = fset.get(guess, [], 0.8);
-    ctx.logger.debug(`comparing ${guess} and ${track.title}`, { match });
-    if (match?.length && match.length >= 1) {
+    if (!track) {
+      throw new Error("can't guess without current track");
+    }
+    const match = ctx.matcher.matchTrack(guess, track, 0.8);
+    ctx.logger.debug(`comparing ${guess} and ${track.title}`, { track, match });
+    if (match !== MatchEnum.None) {
+      const scorePoints = match === MatchEnum.Title ? 2 : 1;
+      const matchType = match === MatchEnum.Title ? "title" : "artist";
+      ctx.state
+        .getChannelState(msg.channel.id)
+        .incrementUserScore(
+          msg.author.username,
+          scorePoints
+        );
+      vc.dispatcher.pause();
       if (!ctx.state.getChannelState(msg.channel.id).isNextTrackAvailable()) {
-        ctx.state
+        vc.disconnect();
+        const scoreboard = ctx.state
           .getChannelState(msg.channel.id)
-          .getVoiceConnection()
-          .disconnect();
+          .getScoreboard();
         ctx.state.eraseChannelState(msg.channel.id);
         msg.reply(
-          `You goddamn right, it is \`${createTrackTitle(
+          `You goddamn right, it is \`${ctx.songService.createTrackTitle(
             track
-          )}\`.\nThat's all, see you later!`
+          )}\`, you've got ${scorePoints} points for guessing ${matchType}.\nThat's all, see you later!`
         );
+        msg.channel.send(ctx.songService.prettyPrintScoreboard(scoreboard));
         return;
       }
 
-      msg.reply(`You goddamn right, it is \`${createTrackTitle(track)}\``);
+      msg.reply(
+        `You goddamn right, it is \`${ctx.songService.createTrackTitle(
+          track
+        )}\`, you've got ${scorePoints} points for guessing ${matchType}.`
+      );
       const newTrack = ctx.state
         .getChannelState(msg.channel.id)
         .switchCurrentTrack();
+      if (!newTrack) {
+        throw new Error("can't continue without next track");
+      }
       const downloadUrl = await ctx.ymApi.getMp3DownloadUrl(
         Number(newTrack.id)
       );
@@ -61,14 +90,13 @@ export default class GuessCommand implements CommandInterface {
         .setCurrentTrackDownloadUrl(downloadUrl);
 
       ctx.logger.info(
-        `playing \`${createTrackTitle(newTrack)}\` at room ${msg.channel.id}`
+        `playing \`${ctx.songService.createTrackTitle(newTrack)}\` at room ${
+          msg.channel.id
+        }`
       );
       ctx.state.getChannelState(msg.channel.id).setPlaying(true);
       msg.reply("Can you guess this song?");
-      ctx.state
-        .getChannelState(msg.channel.id)
-        .getVoiceConnection()
-        .play(downloadUrl);
+      vc.play(downloadUrl);
     } else {
       msg.reply("Bad luck");
     }

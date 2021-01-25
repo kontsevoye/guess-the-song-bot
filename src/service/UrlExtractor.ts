@@ -48,7 +48,7 @@ export default class UrlExtractor {
   extractPlaylistId(url: string): { id: number; user: string } {
     const extracted = this.extract(
       url,
-      /(https?:\/\/)?music\.yandex\.ru\/users\/(?<user>[\w\d\-_\.]+)\/playlists\/(?<id>\d+)/,
+      /(https?:\/\/)?music\.yandex\.ru\/users\/(?<user>[\w\d\-_.]+)\/playlists\/(?<id>\d+)/,
       "playlist",
       ["id", "user"]
     );

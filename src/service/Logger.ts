@@ -1,5 +1,5 @@
 import winston from "winston";
-import { LoggerInterface } from "./types";
+import { LoggerInterface } from "../types";
 
 export default class Logger implements LoggerInterface {
   private logger;

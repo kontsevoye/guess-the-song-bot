@@ -1,19 +1,19 @@
 import { VoiceConnection } from "discord.js";
 import { Track } from "ym-api/dist/types";
-import { ChannelStateInterface, Playlist } from "../../types";
+import { ChannelStateInterface, Playlist, Scoreboard } from "../../types";
 
 export default class ChannelState implements ChannelStateInterface {
   private playing: boolean = false;
 
-  private playlistUrl: string = "";
+  private playlist: Playlist | null = null;
 
-  private playlist: Playlist = { title: "", tracks: [] };
-
-  private current?: Track;
+  private current: Track | null = null;
 
   private currentDownloadUrl: string = "";
 
-  private voiceConnection?: VoiceConnection;
+  private voiceConnection: VoiceConnection | null = null;
+
+  private scoreboard: Scoreboard = {};
 
   isPlaying(): boolean {
     return this.playing;
@@ -23,15 +23,7 @@ export default class ChannelState implements ChannelStateInterface {
     this.playing = playing;
   }
 
-  getPlaylistUrl(): string {
-    return this.playlistUrl;
-  }
-
-  setPlaylistUrl(playlistUrl: string): void {
-    this.playlistUrl = playlistUrl;
-  }
-
-  getPlaylist(): Playlist {
+  getPlaylist(): Playlist | null {
     return this.playlist;
   }
 
@@ -39,22 +31,23 @@ export default class ChannelState implements ChannelStateInterface {
     this.playlist = playlist;
   }
 
-  getCurrentTrack(): Track {
-    if (this.playlist.tracks.length < 1 && !this.current) {
-      throw new Error("ne otkuda brat");
-    }
-    if (!this.current) {
-      this.current = this.playlist.tracks.pop() as Track;
+  getCurrentTrack(): Track | null {
+    if (this.current) {
+      return this.current;
     }
 
-    return this.current;
+    return this.switchCurrentTrack();
   }
 
-  switchCurrentTrack(): Track {
-    if (this.playlist.tracks.length < 1) {
-      throw new Error("ne otkuda brat");
+  switchCurrentTrack(): Track | null {
+    if (!this.playlist || !this.isNextTrackAvailable()) {
+      return null;
     }
-    this.current = this.playlist.tracks.pop() as Track;
+    const track = this.playlist.tracks.pop();
+    if (!track) {
+      return null;
+    }
+    this.current = track;
 
     return this.current;
   }
@@ -67,10 +60,7 @@ export default class ChannelState implements ChannelStateInterface {
     this.currentDownloadUrl = currentDownloadUrl;
   }
 
-  getVoiceConnection(): VoiceConnection {
-    if (!this.voiceConnection) {
-      throw new Error("ne otkuda brat");
-    }
+  getVoiceConnection(): VoiceConnection | null {
     return this.voiceConnection;
   }
 
@@ -79,6 +69,23 @@ export default class ChannelState implements ChannelStateInterface {
   }
 
   isNextTrackAvailable(): boolean {
+    if (!this.playlist) {
+      return false;
+    }
+
     return this.playlist.tracks.length > 0;
+  }
+
+  getScoreboard(): Scoreboard {
+    return this.scoreboard;
+  }
+
+  incrementUserScore(username: string, value: number = 1): void {
+    if (!this.scoreboard[username]) {
+      this.scoreboard[username] = value;
+      return;
+    }
+
+    this.scoreboard[username] += value;
   }
 }

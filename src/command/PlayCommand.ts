@@ -1,9 +1,7 @@
 import { Message } from "discord.js";
 import shuffle from "lodash/shuffle";
-import createTrackTitle from "../helper/createTrackTitle";
 import { StartsWith } from "../matcher";
 import { AppContext, CommandInterface, MatcherInterface } from "../types";
-import UrlExtractor from "../UrlExtractor";
 
 export default class PlayCommand implements CommandInterface {
   getName = (): string => "play";
@@ -31,7 +29,7 @@ export default class PlayCommand implements CommandInterface {
     }
     const playlistUrl = input.pop() as string;
     try {
-      new UrlExtractor().extractPlaylistId(playlistUrl);
+      ctx.urlExtractor.extractPlaylistId(playlistUrl);
     } catch (e) {
       msg.reply(
         `Can't recognize input, please try \`${
@@ -41,7 +39,7 @@ export default class PlayCommand implements CommandInterface {
       return;
     }
     if (msg.member?.voice.channel) {
-      const connection = await msg.member?.voice.channel.join();
+      const connection = await msg.member.voice.channel.join();
       ctx.state.getChannelState(msg.channel.id).setVoiceConnection(connection);
     } else {
       msg.reply("You need to join a voice channel first!");
@@ -50,28 +48,36 @@ export default class PlayCommand implements CommandInterface {
     msg.reply("Spinning the wheel...");
 
     const playlist = await ctx.ymApi.getPlaylist(playlistUrl);
-
     ctx.logger.debug(`fetched playlist with ${playlist.trackCount} tracks`);
+    if (!playlist.tracks || playlist.tracks.length < 1) {
+      throw new Error("can't play empty playlist");
+    }
 
     ctx.state.getChannelState(msg.channel.id).setPlaylist({
       title: playlist.title,
-      tracks: shuffle(playlist.tracks?.map((t) => t.track) || []),
+      tracks: shuffle(playlist.tracks.map((t) => t.track) || []),
     });
     const track = ctx.state.getChannelState(msg.channel.id).getCurrentTrack();
+    if (!track) {
+      throw new Error("can't start without current track");
+    }
     const downloadUrl = await ctx.ymApi.getMp3DownloadUrl(Number(track.id));
     ctx.state
       .getChannelState(msg.channel.id)
       .setCurrentTrackDownloadUrl(downloadUrl);
 
     ctx.logger.info(
-      `playing \`${createTrackTitle(track)}\` at room ${msg.channel.id}`
+      `playing \`${ctx.songService.createTrackTitle(track)}\` at room ${
+        msg.channel.id
+      }`
     );
 
-    ctx.state.getChannelState(msg.channel.id).setPlaying(true);
     msg.reply("Can you guess this song?");
-    ctx.state
-      .getChannelState(msg.channel.id)
-      .getVoiceConnection()
-      .play(downloadUrl);
+    const vc = ctx.state.getChannelState(msg.channel.id).getVoiceConnection();
+    if (!vc) {
+      throw new Error("can't play track without voice connection");
+    }
+    vc.play(downloadUrl);
+    ctx.state.getChannelState(msg.channel.id).setPlaying(true);
   };
 }

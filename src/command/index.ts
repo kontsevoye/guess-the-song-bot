@@ -4,6 +4,7 @@ import GuessCommand from "./GuessCommand";
 import StopCommand from "./StopCommand";
 import SkipCommand from "./SkipCommand";
 import HelpCommand from "./HelpCommand";
+import ScoreCommand from "./ScoreCommand";
 
 export {
   PingCommand,
@@ -12,4 +13,5 @@ export {
   StopCommand,
   SkipCommand,
   HelpCommand,
+  ScoreCommand,
 };

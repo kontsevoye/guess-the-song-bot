@@ -1,5 +1,5 @@
 import { Message } from "discord.js";
-import { AppContext, CommandInterface } from "./types";
+import { AppContext, CommandInterface } from "../types";
 
 export default class CommandHandler {
   constructor(private commands: CommandInterface[]) {}
