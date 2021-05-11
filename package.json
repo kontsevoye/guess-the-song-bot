@@ -44,7 +44,7 @@
     "discord.js": "^12.5.1",
     "ffmpeg-static": "^4.2.7",
     "fuzzyset.js": "^1.0.6",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "typescript": "^4.1.3",
     "winston": "^3.3.3",
     "ym-api": "^1.0.0"
