@@ -36,7 +36,7 @@
     "ts-node": "^9.1.1"
   },
   "dependencies": {
-    "@discordjs/opus": "^0.3.3",
+    "@discordjs/opus": "^0.8.0",
     "@tsconfig/node12": "^1.0.7",
     "@types/fuzzyset.js": "^0.0.2",
     "@types/lodash": "^4.14.167",
